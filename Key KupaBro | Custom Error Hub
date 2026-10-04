@@ -1,89 +1,29 @@
 -- ====================================================================
--- СИСТЕМА КЛЮЧЕЙ
+-- CUSTOM ERROR HUB (FLUENT UI - ЧИСТЫЙ И БЫСТРЫЙ)
 -- ====================================================================
-local CorrectKey = "KupaBro"
-local KeyPassed = false
 
-local KeySystemGui = Instance.new("ScreenGui")
-KeySystemGui.Name = "KeySystemGui"
-KeySystemGui.Parent = game.CoreGui
-
-local KeyFrame = Instance.new("Frame")
-KeyFrame.Size = UDim2.fromOffset(320, 200)
-KeyFrame.Position = UDim2.new(0.5, -160, 0.5, -100)
-KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-KeyFrame.BorderSizePixel = 0
-KeyFrame.Active = true
-KeyFrame.Draggable = true
-KeyFrame.Parent = KeySystemGui
-
-local KeyCorner = Instance.new("UICorner")
-KeyCorner.CornerRadius = UDim.new(0, 12)
-KeyCorner.Parent = KeyFrame
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -20, 0, 30)
-TitleLabel.Position = UDim2.new(0, 10, 0, 15)
-TitleLabel.Text = "Key System"
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 20
-TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Parent = KeyFrame
-
-local KeyInput = Instance.new("TextBox")
-KeyInput.Size = UDim2.new(0.85, 0, 0, 40)
-KeyInput.Position = UDim2.new(0.075, 0, 0.35, 0)
-KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-KeyInput.PlaceholderText = "Введи ключ..."
-KeyInput.Text = ""
-KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeyInput.TextSize = 16
-KeyInput.Font = Enum.Font.SourceSans
-KeyInput.Parent = KeyFrame
-
-local InputCorner = Instance.new("UICorner")
-InputCorner.CornerRadius = UDim.new(0, 8)
-InputCorner.Parent = KeyInput
-
-local SubmitBtn = Instance.new("TextButton")
-SubmitBtn.Size = UDim2.new(0.85, 0, 0, 40)
-SubmitBtn.Position = UDim2.new(0.075, 0, 0.65, 0)
-SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-SubmitBtn.Text = "Проверить ключ"
-SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SubmitBtn.TextSize = 16
-SubmitBtn.Font = Enum.Font.SourceSansBold
-SubmitBtn.Parent = KeyFrame
-
-local BtnCorner = Instance.new("UICorner")
-BtnCorner.CornerRadius = UDim.new(0, 8)
-BtnCorner.Parent = SubmitBtn
-
-SubmitBtn.MouseButton1Click:Connect(function()
-    if KeyInput.Text == CorrectKey then
-        KeyPassed = true
-        KeySystemGui:Destroy()
-    else
-        KeyInput.Text = ""
-        KeyInput.PlaceholderText = "Неверный ключ!"
-        task.wait(1.5)
-        KeyInput.PlaceholderText = "Введи ключ..."
+local function parseTimeString(str)
+    local totalSeconds = 0
+    if not str then return 0 end
+    
+    for num, unit in str:gmatch("(%d+)([dsmh])") do
+        local n = tonumber(num) or 0
+        if unit == "d" then totalSeconds = totalSeconds + (n * 86400)
+        elseif unit == "h" then totalSeconds = totalSeconds + (n * 3600)
+        elseif unit == "m" then totalSeconds = totalSeconds + (n * 60)
+        elseif unit == "s" then totalSeconds = totalSeconds + n
+        end
     end
-end)
+    return totalSeconds
+end
 
-repeat task.wait() until KeyPassed
-
--- ====================================================================
--- ОСНОВНОЙ СКРИПТ (FLUENT UI)
--- ====================================================================
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Kupa Scripts & Mops Scripts| Custom Error Hub",
-    SubTitle = "By Kupa Scripts and Mops Scripts",
+    Title = "Kupa Scripts & Mops Scripts | Custom Error Hub",
+    SubTitle = "By Kupa Scripts & Mops Scripts",
     TabWidth = 140,
-    Size = UDim2.fromOffset(580, 480),
+    Size = UDim2.fromOffset(580, 520),
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl
 })
@@ -91,7 +31,8 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
     Chat = Window:AddTab({ Title = "Чат", Icon = "message-square" }),
     Console = Window:AddTab({ Title = "Консоль", Icon = "terminal" }),
-    Custom = Window:AddTab({ Title = "Уведомление", Icon = "bell" })
+    Notification = Window:AddTab({ Title = "Уведомление", Icon = "bell" }),
+    Settings = Window:AddTab({ Title = "Настройки", Icon = "settings" })
 }
 
 --------------------------------------------------------------------
@@ -99,6 +40,7 @@ local Tabs = {
 --------------------------------------------------------------------
 local ChatPlayerName = "System"
 local ChatMessageText = "Скрипт успешно запущен!"
+local SelectedChatColor = Color3.fromRGB(255, 255, 255)
 
 Tabs.Chat:AddInput("ChatPlayerInput", {
     Title = "Никнейм игрока",
@@ -114,21 +56,28 @@ Tabs.Chat:AddInput("ChatMessageInput", {
     Callback = function(Value) ChatMessageText = Value end
 })
 
+Tabs.Chat:AddColorpicker("ChatColorPicker", {
+    Title = "Выбрать цвет ника",
+    Default = Color3.fromRGB(255, 255, 255),
+    Callback = function(Value) SelectedChatColor = Value end
+})
+
 Tabs.Chat:AddButton({
     Title = "Отправить сообщение в чат",
     Callback = function()
         local TextChatService = game:GetService("TextChatService")
         local StarterGui = game:GetService("StarterGui")
-        
+        local hex = string.format("#%02X%02X%02X", SelectedChatColor.R * 255, SelectedChatColor.G * 255, SelectedChatColor.B * 255)
+
         if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
             local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
             if channel then
-                channel:DisplaySystemMessage("[" .. ChatPlayerName .. "]: " .. ChatMessageText)
+                channel:DisplaySystemMessage("<font color='" .. hex .. "'><b>[" .. ChatPlayerName .. "]</b>:</font> " .. ChatMessageText)
             end
         else
             StarterGui:SetCore("ChatMakeSystemMessage", {
                 Text = "[" .. ChatPlayerName .. "]: " .. ChatMessageText,
-                Color = Color3.fromRGB(255, 255, 255),
+                Color = SelectedChatColor,
                 Font = Enum.Font.SourceSansBold,
                 TextSize = 18
             })
@@ -150,71 +99,172 @@ Tabs.Console:AddInput("ConsoleTextInput", {
 
 Tabs.Console:AddButton({
     Title = "Вывести в консоль (F9)",
-    Callback = function()
-        print(ConsoleText)
-    end
+    Callback = function() print(ConsoleText) end
 })
 
 --------------------------------------------------------------------
--- 3. ВКЛАДКА: УВЕДОМЛЕНИЕ (SendNotification)
+-- 3. ВКЛАДКА: УВЕДОМЛЕНИЕ
 --------------------------------------------------------------------
 local NotifTitle = "Kupa Scripts & Mops Scripts"
 local NotifText = "Скрипт успешно загружен и запущен!"
 local NotifDuration = 5
 local ButtonTitleText = "ОК"
-local SelectedAction = "Запуск скрипта"
+
+local SelectedAction = "Запустить скрипт"
 local KickReasonText = "Вас кикнули"
 local ScriptUrlText = "print('Executed!')"
+local TimerFormatStr = "10s"
 
-Tabs.Custom:AddInput("NotifTitleInput", {
-    Title = "Заголовок (Сверху)",
+local AddNextMessage = false
+local ShowAfterTimer = false
+local NextNotifTitle = "Второе сообщение"
+local NextNotifText = "Цепочка сообщений сработала!"
+local NextAction = "Таймер"
+local NextKickReason = "Вас кикнули повторно"
+local NextScriptUrl = "print('Second Executed!')"
+local NextTimerFormat = "5s"
+
+Tabs.Notification:AddInput("NotifTitleInput", {
+    Title = "Заголовок сообщения",
     Default = NotifTitle,
     Placeholder = "Введи заголовок...",
     Callback = function(Value) NotifTitle = Value end
 })
 
-Tabs.Custom:AddInput("NotifTextInput", {
-    Title = "Текст сообщения (Снизу)",
+Tabs.Notification:AddInput("NotifTextInput", {
+    Title = "Текст сообщения",
     Default = NotifText,
     Placeholder = "Введи текст...",
     Callback = function(Value) NotifText = Value end
 })
 
-Tabs.Custom:AddInput("NotifDurationInput", {
-    Title = "Сколько секунд висит уведомление (Duration)",
+Tabs.Notification:AddInput("NotifDurationInput", {
+    Title = "Время показа уведомления (сек)",
     Default = "5",
-    Placeholder = "Секунды...",
     Callback = function(Value) NotifDuration = tonumber(Value) or 5 end
 })
 
-Tabs.Custom:AddDropdown("ActionDropdown", {
-    Title = "Действие при нажатии на кнопку",
-    Values = {"Без кнопки", "Кик (Кастом причина)", "Запуск скрипта"},
-    Default = "Запуск скрипта",
-    Callback = function(Value) SelectedAction = Value end
-})
-
-Tabs.Custom:AddInput("ButtonTitleInput", {
-    Title = "Название кнопки в уведомлении",
+Tabs.Notification:AddInput("ButtonTitleInput", {
+    Title = "Название кнопки",
     Default = ButtonTitleText,
-    Placeholder = "Например: Запустить / Нажать / ОК",
     Callback = function(Value) ButtonTitleText = Value end
 })
 
-Tabs.Custom:AddInput("KickReasonInput", {
-    Title = "Причина кика (если выбран Кик)",
+Tabs.Notification:AddDropdown("ActionDropdown", {
+    Title = "Выбор действия кнопки",
+    Values = {"Кик", "Запустить скрипт", "Таймер"},
+    Default = "Запустить скрипт",
+    Callback = function(Value) SelectedAction = Value end
+})
+
+Tabs.Notification:AddInput("KickReasonInput", {
+    Title = "Причина кика",
     Default = KickReasonText,
     Callback = function(Value) KickReasonText = Value end
 })
 
-Tabs.Custom:AddInput("ScriptUrlInput", {
-    Title = "Код / Ссылка на скрипт (если выбран Запуск)",
+Tabs.Notification:AddInput("ScriptUrlInput", {
+    Title = "Код / Ссылка на скрипт",
     Default = ScriptUrlText,
     Callback = function(Value) ScriptUrlText = Value end
 })
 
-Tabs.Custom:AddButton({
-    Title = "Показать уведомление (SendNotification)",
+Tabs.Notification:AddInput("TimerFormatInput", {
+    Title = "Таймер (например: 10s)",
+    Default = "10s",
+    Callback = function(Value) TimerFormatStr = Value end
+})
+
+Tabs.Notification:AddToggle("AddMsgToggle", {
+    Title = "Добавить ещё сообщения",
+    Default = false,
+    Callback = function(Value) AddNextMessage = Value end
+})
+
+Tabs.Notification:AddToggle("ShowAfterTimerToggle", {
+    Title = "Появится после таймера",
+    Default = false,
+    Callback = function(Value) ShowAfterTimer = Value end
+})
+
+Tabs.Notification:AddInput("NextTitleInput", {
+    Title = "Заголовок 2-го сообщения",
+    Default = NextNotifTitle,
+    Callback = function(Value) NextNotifTitle = Value end
+})
+
+Tabs.Notification:AddInput("NextTextInput", {
+    Title = "Текст 2-го сообщения",
+    Default = NextNotifText,
+    Callback = function(Value) NextNotifText = Value end
+})
+
+Tabs.Notification:AddDropdown("NextActionDropdown", {
+    Title = "Выбор действия 2-го сообщения",
+    Values = {"Кик", "Запустить скрипт", "Таймер"},
+    Default = "Таймер",
+    Callback = function(Value) NextAction = Value end
+})
+
+Tabs.Notification:AddInput("NextKickInput", {
+    Title = "Причина кика (2-е сообщение)",
+    Default = NextKickReason,
+    Callback = function(Value) NextKickReason = Value end
+})
+
+Tabs.Notification:AddInput("NextScriptInput", {
+    Title = "Скрипт / Ссылка (2-е сообщение)",
+    Default = NextScriptUrl,
+    Callback = function(Value) NextScriptUrl = Value end
+})
+
+Tabs.Notification:AddInput("NextTimerInput", {
+    Title = "Таймер (2-е сообщение, например: 5s)",
+    Default = NextTimerFormat,
+    Callback = function(Value) NextTimerFormat = Value end
+})
+
+local function executeAction(actionType, kickText, scriptText, timerStr, onTimerFinish)
+    if actionType == "Кик" then
+        game.Players.LocalPlayer:Kick(kickText)
+    elseif actionType == "Запустить скрипт" then
+        if scriptText:find("http") then
+            loadstring(game:HttpGet(scriptText))()
+        else
+            loadstring(scriptText)()
+        end
+    elseif actionType == "Таймер" then
+        local totalSeconds = parseTimeString(timerStr)
+        task.spawn(function()
+            local timerGui = Instance.new("ScreenGui")
+            timerGui.Name = "CustomRedTimer"
+            timerGui.Parent = game.CoreGui
+
+            local timerLbl = Instance.new("TextLabel")
+            timerLbl.Size = UDim2.fromOffset(200, 50)
+            timerLbl.Position = UDim2.new(0.5, -100, 0.1, 0)
+            timerLbl.BackgroundTransparency = 1
+            timerLbl.TextColor3 = Color3.fromRGB(255, 0, 0)
+            timerLbl.TextSize = 28
+            timerLbl.Font = Enum.Font.SourceSansBold
+            timerLbl.Text = totalSeconds .. " s"
+            timerLbl.Parent = timerGui
+
+            for i = totalSeconds, 1, -1 do
+                timerLbl.Text = i .. " s"
+                task.wait(1)
+            end
+            
+            timerGui:Destroy()
+            if onTimerFinish then onTimerFinish() end
+        end)
+        return
+    end
+    if onTimerFinish then onTimerFinish() end
+end
+
+Tabs.Notification:AddButton({
+    Title = "Отправить уведомление",
     Callback = function()
         local StarterGui = game:GetService("StarterGui")
         local notifData = {
@@ -223,33 +273,61 @@ Tabs.Custom:AddButton({
             Duration = NotifDuration
         }
 
-        if SelectedAction ~= "Без кнопки" then
-            -- Устанавливаем кастомное имя кнопки
-            notifData.Button1 = ButtonTitleText ~= "" and ButtonTitleText or "Кнопка"
+        notifData.Button1 = ButtonTitleText ~= "" and ButtonTitleText or "ОК"
+        
+        local bindable = Instance.new("BindableFunction")
+        bindable.OnInvoke = function(pressedButton)
             
-            local bindable = Instance.new("BindableFunction")
-            bindable.OnInvoke = function(pressedButton)
-                if SelectedAction == "Кик (Кастом причина)" then
-                    game.Players.LocalPlayer:Kick(KickReasonText)
-                elseif SelectedAction == "Запуск скрипта" then
-                    if ScriptUrlText:find("http") then
-                        loadstring(game:HttpGet(ScriptUrlText))()
+            local function triggerSecondMessage()
+                StarterGui:SetCore("SendNotification", {
+                    Title = NextNotifTitle,
+                    Text = NextNotifText,
+                    Duration = 5
+                })
+                executeAction(NextAction, NextKickReason, NextScriptUrl, NextTimerFormat, nil)
+            end
+
+            if SelectedAction == "Таймер" then
+                if AddNextMessage and ShowAfterTimer then
+                    executeAction("Таймер", "", "", TimerFormatStr, function()
+                        triggerSecondMessage()
+                    end)
+                else
+                    executeAction("Таймер", "", "", TimerFormatStr, nil)
+                    if AddNextMessage and not ShowAfterTimer then
+                        triggerSecondMessage()
+                    end
+                end
+            else
+                executeAction(SelectedAction, KickReasonText, ScriptUrlText, "", nil)
+                if AddNextMessage then
+                    if ShowAfterTimer then
+                        local totalSec = parseTimeString(TimerFormatStr)
+                        task.spawn(function()
+                            task.wait(totalSec)
+                            triggerSecondMessage()
+                        end)
                     else
-                        loadstring(ScriptUrlText)()
+                        triggerSecondMessage()
                     end
                 end
             end
-            
-            notifData.Callback = bindable
         end
-
+        
+        notifData.Callback = bindable
         StarterGui:SetCore("SendNotification", notifData)
     end
 })
 
 --------------------------------------------------------------------
--- ПЛАВАЮЩАЯ КНОПКА ДЛЯ ОТКРЫТИЯ/СВОРАЧИВАНИЯ
+-- 4. ВКЛАДКА: НАСТРОЙКИ
 --------------------------------------------------------------------
+Tabs.Settings:AddParagraph({
+    Title = "Настройки плавающей кнопки открытия",
+    Content = "Управление кнопкой на экране для сворачивания/разворачивания."
+})
+
+-- ПЛАВАЮЩАЯ КНОПКА
 local OpenGui = Instance.new("ScreenGui")
 OpenGui.Name = "FluentToggleGui"
 OpenGui.Parent = game.CoreGui
@@ -271,9 +349,26 @@ ToggleBtnCorner.CornerRadius = UDim.new(0, 12)
 ToggleBtnCorner.Parent = ToggleButton
 
 ToggleButton.MouseButton1Click:Connect(function()
-    VirtualInputManager = game:GetService("VirtualInputManager")
+    local VirtualInputManager = game:GetService("VirtualInputManager")
     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightControl, false, game)
     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightControl, false, game)
 end)
+
+Tabs.Settings:AddInput("ToggleBtnTextInput", {
+    Title = "Текст на кнопке открытия",
+    Default = "UI",
+    Placeholder = "Введи текст...",
+    Callback = function(Value)
+        ToggleButton.Text = Value ~= "" and Value or "UI"
+    end
+})
+
+Tabs.Settings:AddToggle("ShowToggleBtnToggle", {
+    Title = "Показывать плавающую кнопку на экране",
+    Default = true,
+    Callback = function(Value)
+        OpenGui.Enabled = Value
+    end
+})
 
 Window:SelectTab(1)
