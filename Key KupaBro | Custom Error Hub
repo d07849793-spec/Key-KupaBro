@@ -1,5 +1,5 @@
 -- ====================================================================
--- CUSTOM ERROR HUB (FLUENT UI - ЧИСТЫЙ И БЫСТРЫЙ)
+-- CUSTOM ERROR HUB (FLUENT UI)
 -- ====================================================================
 
 local function parseTimeString(str)
@@ -105,43 +105,39 @@ Tabs.Console:AddButton({
 --------------------------------------------------------------------
 -- 3. ВКЛАДКА: УВЕДОМЛЕНИЕ
 --------------------------------------------------------------------
-local NotifTitle = "Kupa Scripts & Mops Scripts"
-local NotifText = "Скрипт успешно загружен и запущен!"
-local NotifDuration = 5
-local ButtonTitleText = "ОК"
+local NotifTitle = "Добро пожаловать"
+local NotifText = "Добро пожаловать в наш Custom error hub хотите запустить скрипт"
+local NotifDuration = 10
+local ButtonTitleText = "Запустить"
 
 local SelectedAction = "Запустить скрипт"
 local KickReasonText = "Вас кикнули"
 local ScriptUrlText = "print('Executed!')"
 local TimerFormatStr = "10s"
 
-local AddNextMessage = false
-local ShowAfterTimer = false
-local NextNotifTitle = "Второе сообщение"
-local NextNotifText = "Цепочка сообщений сработала!"
-local NextAction = "Таймер"
-local NextKickReason = "Вас кикнули повторно"
-local NextScriptUrl = "print('Second Executed!')"
-local NextTimerFormat = "5s"
+local EnableAfterTimer = false
+local AfterTimerAction = "Кик"
+local AfterTimerKickReason = "Вас кикнули после таймера"
+local AfterTimerScriptUrl = "print('After Timer Executed!')"
 
 Tabs.Notification:AddInput("NotifTitleInput", {
-    Title = "Заголовок сообщения",
+    Title = "Заголовок уведомления",
     Default = NotifTitle,
-    Placeholder = "Введи заголовок...",
+    Placeholder = "Заголовок...",
     Callback = function(Value) NotifTitle = Value end
 })
 
 Tabs.Notification:AddInput("NotifTextInput", {
-    Title = "Текст сообщения",
+    Title = "Текст уведомления",
     Default = NotifText,
-    Placeholder = "Введи текст...",
+    Placeholder = "Текст...",
     Callback = function(Value) NotifText = Value end
 })
 
 Tabs.Notification:AddInput("NotifDurationInput", {
-    Title = "Время показа уведомления (сек)",
-    Default = "5",
-    Callback = function(Value) NotifDuration = tonumber(Value) or 5 end
+    Title = "Время показа (сек)",
+    Default = "10",
+    Callback = function(Value) NotifDuration = tonumber(Value) or 10 end
 })
 
 Tabs.Notification:AddInput("ButtonTitleInput", {
@@ -151,20 +147,20 @@ Tabs.Notification:AddInput("ButtonTitleInput", {
 })
 
 Tabs.Notification:AddDropdown("ActionDropdown", {
-    Title = "Выбор действия кнопки",
+    Title = "Действие при нажатии кнопки",
     Values = {"Кик", "Запустить скрипт", "Таймер"},
     Default = "Запустить скрипт",
     Callback = function(Value) SelectedAction = Value end
 })
 
 Tabs.Notification:AddInput("KickReasonInput", {
-    Title = "Причина кика",
+    Title = "Причина кика (для кнопки)",
     Default = KickReasonText,
     Callback = function(Value) KickReasonText = Value end
 })
 
 Tabs.Notification:AddInput("ScriptUrlInput", {
-    Title = "Код / Ссылка на скрипт",
+    Title = "Скрипт / Ссылка (для кнопки)",
     Default = ScriptUrlText,
     Callback = function(Value) ScriptUrlText = Value end
 })
@@ -175,53 +171,30 @@ Tabs.Notification:AddInput("TimerFormatInput", {
     Callback = function(Value) TimerFormatStr = Value end
 })
 
-Tabs.Notification:AddToggle("AddMsgToggle", {
-    Title = "Добавить ещё сообщения",
+-- НАСТРОЙКИ ДЕЙСТВИЯ ПОСЛЕ ТАЙМЕРА
+Tabs.Notification:AddToggle("EnableAfterTimerToggle", {
+    Title = "Действие после таймера",
     Default = false,
-    Callback = function(Value) AddNextMessage = Value end
+    Callback = function(Value) EnableAfterTimer = Value end
 })
 
-Tabs.Notification:AddToggle("ShowAfterTimerToggle", {
-    Title = "Появится после таймера",
-    Default = false,
-    Callback = function(Value) ShowAfterTimer = Value end
+Tabs.Notification:AddDropdown("AfterTimerActionDropdown", {
+    Title = "Выбор действия после таймера",
+    Values = {"Кик", "Запустить скрипт"},
+    Default = "Кик",
+    Callback = function(Value) AfterTimerAction = Value end
 })
 
-Tabs.Notification:AddInput("NextTitleInput", {
-    Title = "Заголовок 2-го сообщения",
-    Default = NextNotifTitle,
-    Callback = function(Value) NextNotifTitle = Value end
+Tabs.Notification:AddInput("AfterTimerKickInput", {
+    Title = "Причина кика (после таймера)",
+    Default = AfterTimerKickReason,
+    Callback = function(Value) AfterTimerKickReason = Value end
 })
 
-Tabs.Notification:AddInput("NextTextInput", {
-    Title = "Текст 2-го сообщения",
-    Default = NextNotifText,
-    Callback = function(Value) NextNotifText = Value end
-})
-
-Tabs.Notification:AddDropdown("NextActionDropdown", {
-    Title = "Выбор действия 2-го сообщения",
-    Values = {"Кик", "Запустить скрипт", "Таймер"},
-    Default = "Таймер",
-    Callback = function(Value) NextAction = Value end
-})
-
-Tabs.Notification:AddInput("NextKickInput", {
-    Title = "Причина кика (2-е сообщение)",
-    Default = NextKickReason,
-    Callback = function(Value) NextKickReason = Value end
-})
-
-Tabs.Notification:AddInput("NextScriptInput", {
-    Title = "Скрипт / Ссылка (2-е сообщение)",
-    Default = NextScriptUrl,
-    Callback = function(Value) NextScriptUrl = Value end
-})
-
-Tabs.Notification:AddInput("NextTimerInput", {
-    Title = "Таймер (2-е сообщение, например: 5s)",
-    Default = NextTimerFormat,
-    Callback = function(Value) NextTimerFormat = Value end
+Tabs.Notification:AddInput("AfterTimerScriptInput", {
+    Title = "Скрипт / Ссылка (после таймера)",
+    Default = AfterTimerScriptUrl,
+    Callback = function(Value) AfterTimerScriptUrl = Value end
 })
 
 local function executeAction(actionType, kickText, scriptText, timerStr, onTimerFinish)
@@ -273,44 +246,33 @@ Tabs.Notification:AddButton({
             Duration = NotifDuration
         }
 
-        notifData.Button1 = ButtonTitleText ~= "" and ButtonTitleText or "ОК"
+        notifData.Button1 = ButtonTitleText ~= "" and ButtonTitleText or "Запустить"
         
         local bindable = Instance.new("BindableFunction")
         bindable.OnInvoke = function(pressedButton)
             
-            local function triggerSecondMessage()
-                StarterGui:SetCore("SendNotification", {
-                    Title = NextNotifTitle,
-                    Text = NextNotifText,
-                    Duration = 5
-                })
-                executeAction(NextAction, NextKickReason, NextScriptUrl, NextTimerFormat, nil)
+            local function triggerAfterTimer()
+                if AfterTimerAction == "Кик" then
+                    game.Players.LocalPlayer:Kick(AfterTimerKickReason)
+                elseif AfterTimerAction == "Запустить скрипт" then
+                    if AfterTimerScriptUrl:find("http") then
+                        loadstring(game:HttpGet(AfterTimerScriptUrl))()
+                    else
+                        loadstring(AfterTimerScriptUrl)()
+                    end
+                end
             end
 
             if SelectedAction == "Таймер" then
-                if AddNextMessage and ShowAfterTimer then
+                if EnableAfterTimer then
                     executeAction("Таймер", "", "", TimerFormatStr, function()
-                        triggerSecondMessage()
+                        triggerAfterTimer()
                     end)
                 else
                     executeAction("Таймер", "", "", TimerFormatStr, nil)
-                    if AddNextMessage and not ShowAfterTimer then
-                        triggerSecondMessage()
-                    end
                 end
             else
                 executeAction(SelectedAction, KickReasonText, ScriptUrlText, "", nil)
-                if AddNextMessage then
-                    if ShowAfterTimer then
-                        local totalSec = parseTimeString(TimerFormatStr)
-                        task.spawn(function()
-                            task.wait(totalSec)
-                            triggerSecondMessage()
-                        end)
-                    else
-                        triggerSecondMessage()
-                    end
-                end
             end
         end
         
@@ -327,7 +289,6 @@ Tabs.Settings:AddParagraph({
     Content = "Управление кнопкой на экране для сворачивания/разворачивания."
 })
 
--- ПЛАВАЮЩАЯ КНОПКА
 local OpenGui = Instance.new("ScreenGui")
 OpenGui.Name = "FluentToggleGui"
 OpenGui.Parent = game.CoreGui
