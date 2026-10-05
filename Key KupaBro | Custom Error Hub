@@ -1,6 +1,15 @@
 -- ====================================================================
--- CUSTOM ERROR HUB (FLUENT UI)
+-- CUSTOM ERROR HUB (FLUENT UI - STABLE & CLEAN)
 -- ====================================================================
+
+local success, Fluent = pcall(function()
+    return loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+end)
+
+if not success or not Fluent then
+    warn("Не удалось загрузить Fluent UI!")
+    return
+end
 
 local function parseTimeString(str)
     local totalSeconds = 0
@@ -46,8 +55,6 @@ local function removeAllTimers()
     activeTimersCount = 0
     currentTimerTextDisplay = "Нет активных таймеров"
 end
-
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
     Title = "Kupa Scripts & Mops Scripts | Custom Error Hub",
@@ -444,9 +451,7 @@ ToggleBtnCorner.CornerRadius = UDim.new(0, 12)
 ToggleBtnCorner.Parent = ToggleButton
 
 ToggleButton.MouseButton1Click:Connect(function()
-    local VirtualInputManager = game:GetService("VirtualInputManager")
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightControl, false, game)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightControl, false, game)
+    Fluent:Toggle()
 end)
 
 Tabs.Settings:AddInput("ToggleBtnTextInput", {
@@ -507,9 +512,7 @@ F9Button.MouseButton1Click:Connect(function()
     if devConsole then
         devConsole.Enabled = not devConsole.Enabled
     else
-        local VirtualInputManager = game:GetService("VirtualInputManager")
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F9, false, game)
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F9, false, game)
+        game:GetService("StarterGui"):SetCore("DevConsoleVisible", not game:GetService("StarterGui"):GetCore("DevConsoleVisible"))
     end
 end)
 
