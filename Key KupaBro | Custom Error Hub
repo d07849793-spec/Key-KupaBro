@@ -38,6 +38,7 @@ local currentTimerTextDisplay = "Нет активных таймеров"
 local timerColor = Color3.fromRGB(255, 0, 0)
 local isRainbowTimerActive = false
 
+-- Жесткий сброс всех таймеров и счетчиков
 local function removeAllTimers()
     for _, gui in ipairs(game.CoreGui:GetChildren()) do
         if gui.Name == "CustomRedTimer" then
@@ -306,6 +307,9 @@ local function executeAction(actionType, kickText, scriptText, timerStr, onTimer
             end
 
             for i = totalSeconds - 1, 0, -1 do
+                -- Если таймеры принудительно удалили через кнопку, прерываем цикл
+                if activeTimersCount <= 0 then break end
+                
                 currentTimerTextDisplay = formatRemainingTime(i + 1)
                 task.wait(1)
                 if timerLbl and timerLbl.Parent then
@@ -323,7 +327,7 @@ local function executeAction(actionType, kickText, scriptText, timerStr, onTimer
                 currentTimerTextDisplay = "Нет активных таймеров"
             end
 
-            if onTimerFinish then onTimerFinish() end
+            if onTimerFinish and activeTimersCount >= 0 then onTimerFinish() end
         end)
         return
     end
