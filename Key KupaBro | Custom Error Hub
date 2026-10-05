@@ -2,7 +2,7 @@
 -- CUSTOM ERROR HUB (FLUENT UI)
 -- ====================================================================
 
--- Обновленный парсер времени под формат: ???s ???m ???d ???h
+-- Парсер времени (поддерживает 10s, 2m, 1h, 1d и любые их комбинации)
 local function parseTimeString(str)
     local totalSeconds = 0
     if not str then return 0 end
@@ -16,6 +16,16 @@ local function parseTimeString(str)
         end
     end
     return totalSeconds
+end
+
+-- Функция форматирования секунд в строку вида: XXs XXm XXh XXd
+local function formatTimeDisplay(totalSec)
+    local d = math.floor(totalSec / 86400)
+    local h = math.floor((totalSec % 86400) / 3600)
+    local m = math.floor((totalSec % 3600) / 60)
+    local s = totalSec % 60
+    
+    return string.format("%ds %dm %dh %dd", s, m, h, d)
 end
 
 -- Функция мгновенного удаления всех активных таймеров с экрана
@@ -123,10 +133,10 @@ local ButtonTitleText = "Запустить"
 local SelectedAction = "Запустить скрипт"
 local KickReasonText = "Вас кикнули"
 local ScriptUrlText = "print('Executed!')"
-local TimerFormatStr = "10s 2m"
+local TimerFormatStr = "10s"
 
 local EnableAfterTimer = false
-local HideTimerUI = false -- Скрыть таймер визуально
+local HideTimerUI = false
 local AfterTimerAction = "Кик"
 local AfterTimerKickReason = "Вас кикнули после таймера"
 local AfterTimerScriptUrl = "print('After Timer Executed!')"
@@ -177,7 +187,7 @@ Tabs.Notification:AddInput("ScriptUrlInput", {
 })
 
 Tabs.Notification:AddInput("TimerFormatInput", {
-    Title = "Таймер (например: 20s 2m 1h)",
+    Title = "Таймер (например: 10s 2m)",
     Default = "10s",
     Callback = function(Value) TimerFormatStr = Value end
 })
@@ -238,26 +248,25 @@ local function executeAction(actionType, kickText, scriptText, timerStr, onTimer
             local timerGui = nil
             local timerLbl = nil
 
-            -- Создаем визуальный таймер только если переключатель «Скрыть таймер» выключен
             if not HideTimerUI then
                 timerGui = Instance.new("ScreenGui")
                 timerGui.Name = "CustomRedTimer"
                 timerGui.Parent = game.CoreGui
 
                 timerLbl = Instance.new("TextLabel")
-                timerLbl.Size = UDim2.fromOffset(200, 50)
-                timerLbl.Position = UDim2.new(0.5, -100, 0.1, 0)
+                timerLbl.Size = UDim2.fromOffset(300, 50)
+                timerLbl.Position = UDim2.new(0.5, -150, 0.1, 0)
                 timerLbl.BackgroundTransparency = 1
                 timerLbl.TextColor3 = Color3.fromRGB(255, 0, 0)
-                timerLbl.TextSize = 28
+                timerLbl.TextSize = 24
                 timerLbl.Font = Enum.Font.SourceSansBold
-                timerLbl.Text = totalSeconds .. " s"
+                timerLbl.Text = formatTimeDisplay(totalSeconds)
                 timerLbl.Parent = timerGui
             end
 
             for i = totalSeconds, 1, -1 do
                 if timerLbl and timerLbl.Parent then
-                    timerLbl.Text = i .. " s"
+                    timerLbl.Text = formatTimeDisplay(i - 1)
                 end
                 task.wait(1)
             end
