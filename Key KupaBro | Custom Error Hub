@@ -2,7 +2,6 @@
 -- CUSTOM ERROR HUB (FLUENT UI)
 -- ====================================================================
 
--- Парсер времени (поддерживает 10s, 2m, 1h, 1d и любые их комбинации)
 local function parseTimeString(str)
     local totalSeconds = 0
     if not str then return 0 end
@@ -18,23 +17,35 @@ local function parseTimeString(str)
     return totalSeconds
 end
 
--- Функция форматирования секунд в строку вида: XXs XXm XXh XXd
-local function formatTimeDisplay(totalSec)
+local function formatRemainingTime(totalSec)
     local d = math.floor(totalSec / 86400)
     local h = math.floor((totalSec % 86400) / 3600)
     local m = math.floor((totalSec % 3600) / 60)
     local s = totalSec % 60
     
-    return string.format("%ds %dm %dh %dd", s, m, h, d)
+    local parts = {}
+    if d > 0 then table.insert(parts, d .. "d") end
+    if h > 0 then table.insert(parts, h .. "h") end
+    if m > 0 then table.insert(parts, m .. "m") end
+    if s > 0 or #parts == 0 then table.insert(parts, s .. "s") end
+    
+    return table.concat(parts, " ")
 end
 
--- Функция мгновенного удаления всех активных таймеров с экрана
+-- Переменные для кастомизации таймера
+local activeTimersCount = 0
+local currentTimerTextDisplay = "Нет активных таймеров"
+local timerColor = Color3.fromRGB(255, 0, 0)
+local isRainbowTimerActive = false
+
 local function removeAllTimers()
     for _, gui in ipairs(game.CoreGui:GetChildren()) do
         if gui.Name == "CustomRedTimer" then
             gui:Destroy()
         end
     end
+    activeTimersCount = 0
+    currentTimerTextDisplay = "Нет активных таймеров"
 end
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -133,7 +144,7 @@ local ButtonTitleText = "Запустить"
 local SelectedAction = "Запустить скрипт"
 local KickReasonText = "Вас кикнули"
 local ScriptUrlText = "print('Executed!')"
-local TimerFormatStr = "10s"
+local TimerFormatStr = "10s 9m 8h 10d"
 
 local EnableAfterTimer = false
 local HideTimerUI = false
@@ -187,19 +198,34 @@ Tabs.Notification:AddInput("ScriptUrlInput", {
 })
 
 Tabs.Notification:AddInput("TimerFormatInput", {
-    Title = "Таймер (например: 10s 2m)",
-    Default = "10s",
+    Title = "Таймер (например: 10s 9m 8h 10d)",
+    Default = "10s 9m 8h 10d",
     Callback = function(Value) TimerFormatStr = Value end
 })
 
--- ПЕРЕКЛЮЧАТЕЛЬ: СКРЫТЬ ТАЙМЕР
+-- НАСТРОЙКИ ЦВЕТА И РАДУГИ ТАЙМЕРА
+Tabs.Notification:AddColorpicker("TimerColorPicker", {
+    Title = "Цвет текста таймера",
+    Default = Color3.fromRGB(255, 0, 0),
+    Callback = function(Value)
+        timerColor = Value
+    end
+})
+
+Tabs.Notification:AddToggle("RainbowTimerToggle", {
+    Title = "Радужный градиент таймера",
+    Default = false,
+    Callback = function(Value)
+        isRainbowTimerActive = Value
+    end
+})
+
 Tabs.Notification:AddToggle("HideTimerToggle", {
     Title = "Скрыть таймер (не показывать визуально)",
     Default = false,
     Callback = function(Value) HideTimerUI = Value end
 })
 
--- КНОПКА: УДАЛИТЬ ВСЕ ТАЙМЕРЫ
 Tabs.Notification:AddButton({
     Title = "Удалить все таймеры",
     Callback = function()
@@ -207,7 +233,6 @@ Tabs.Notification:AddButton({
     end
 })
 
--- НАСТРОЙКИ ДЕЙСТВИЯ ПОСЛЕ ТАЙМЕРА
 Tabs.Notification:AddToggle("EnableAfterTimerToggle", {
     Title = "Действие после таймера",
     Default = false,
@@ -244,9 +269,12 @@ local function executeAction(actionType, kickText, scriptText, timerStr, onTimer
         end
     elseif actionType == "Таймер" then
         local totalSeconds = parseTimeString(timerStr)
+        activeTimersCount = activeTimersCount + 1
+
         task.spawn(function()
             local timerGui = nil
             local timerLbl = nil
+            local rainbowConn = nil
 
             if not HideTimerUI then
                 timerGui = Instance.new("ScreenGui")
@@ -254,26 +282,47 @@ local function executeAction(actionType, kickText, scriptText, timerStr, onTimer
                 timerGui.Parent = game.CoreGui
 
                 timerLbl = Instance.new("TextLabel")
-                timerLbl.Size = UDim2.fromOffset(300, 50)
-                timerLbl.Position = UDim2.new(0.5, -150, 0.1, 0)
+                timerLbl.Size = UDim2.fromOffset(400, 50)
+                timerLbl.Position = UDim2.new(0.5, -200, 0.1, 0)
                 timerLbl.BackgroundTransparency = 1
-                timerLbl.TextColor3 = Color3.fromRGB(255, 0, 0)
+                timerLbl.TextColor3 = timerColor
                 timerLbl.TextSize = 24
                 timerLbl.Font = Enum.Font.SourceSansBold
-                timerLbl.Text = formatTimeDisplay(totalSeconds)
+                timerLbl.Text = formatRemainingTime(totalSeconds)
                 timerLbl.Parent = timerGui
+
+                if isRainbowTimerActive then
+                    local runService = game:GetService("RunService")
+                    local hue = 0
+                    rainbowConn = runService.RenderStepped:Connect(function()
+                        if not timerLbl or not timerLbl.Parent then
+                            if rainbowConn then rainbowConn:Disconnect() end
+                            return
+                        end
+                        hue = (tick() * 0.2) % 1
+                        timerLbl.TextColor3 = Color3.fromHSV(hue, 1, 1)
+                    end)
+                end
             end
 
-            for i = totalSeconds, 1, -1 do
-                if timerLbl and timerLbl.Parent then
-                    timerLbl.Text = formatTimeDisplay(i - 1)
-                end
+            for i = totalSeconds - 1, 0, -1 do
+                currentTimerTextDisplay = formatRemainingTime(i + 1)
                 task.wait(1)
+                if timerLbl and timerLbl.Parent then
+                    timerLbl.Text = formatRemainingTime(i)
+                end
             end
             
+            if rainbowConn then rainbowConn:Disconnect() end
             if timerGui and timerGui.Parent then
                 timerGui:Destroy()
             end
+
+            activeTimersCount = math.max(0, activeTimersCount - 1)
+            if activeTimersCount == 0 then
+                currentTimerTextDisplay = "Нет активных таймеров"
+            end
+
             if onTimerFinish then onTimerFinish() end
         end)
         return
@@ -295,7 +344,6 @@ Tabs.Notification:AddButton({
         
         local bindable = Instance.new("BindableFunction")
         bindable.OnInvoke = function(pressedButton)
-            
             local function triggerAfterTimer()
                 if AfterTimerAction == "Кик" then
                     game.Players.LocalPlayer:Kick(AfterTimerKickReason)
@@ -325,6 +373,23 @@ Tabs.Notification:AddButton({
         StarterGui:SetCore("SendNotification", notifData)
     end
 })
+
+--------------------------------------------------------------------
+-- ТЕКСТ С АНАЛИЗОМ ТАЙМЕРОВ В КОНЦЕ ВКЛАДКИ УВЕДОМЛЕНИЕ
+--------------------------------------------------------------------
+local StatusParagraph = Tabs.Notification:AddParagraph({
+    Title = "Статус таймеров",
+    Content = "Активных таймеров: 0\nТекущее время: Нет активных таймеров"
+})
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        pcall(function()
+            StatusParagraph:SetDesc("Активных таймеров: " .. activeTimersCount .. "\nТекущее время: " .. currentTimerTextDisplay)
+        end)
+    end
+end)
 
 --------------------------------------------------------------------
 -- 4. ВКЛАДКА: НАСТРОЙКИ
