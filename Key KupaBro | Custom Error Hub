@@ -590,4 +590,90 @@ F9Button.Active = true
 F9Button.Draggable = true
 F9Button.Parent = F9Gui
 
-local F9
+local F9 -- Защита от повторного запуска (удаляем старую кнопку)
+local coreGui = game:GetService("CoreGui")
+if coreGui:FindFirstChild("ConsolButtonGui") then
+    coreGui.ConsolButtonGui:Destroy()
+end
+
+-- Создаем ScreenGui в CoreGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ConsolButtonGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = coreGui
+
+-- Создаем круглую кнопку
+local button = Instance.new("TextButton")
+button.Name = "Consol"
+button.Size = UDim2.new(0, 70, 0, 70)
+button.Position = UDim2.new(0.1, 0, 0.2, 0)
+button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+button.Text = "Consol"
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.TextSize = 15
+button.Font = Enum.Font.SourceSansBold
+button.Parent = screenGui
+
+-- Делаем кнопку круглой
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(1, 0)
+uiCorner.Parent = button
+
+-- Белая обводка
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Thickness = 2
+uiStroke.Parent = button
+
+-- Логика перетаскивания (ПК и мобильные устройства)
+local userInputService = game:GetService("UserInputService")
+local dragging, dragInput, mousePos, framePos
+
+button.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        mousePos = input.Position
+        framePos = button.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+userInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - mousePos
+        button.Position = UDim2.new(
+            framePos.X.Scale, 
+            framePos.X.Offset + delta.X, 
+            framePos.Y.Scale, 
+            framePos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Функция запуска DEVCONSOL
+local function runDevConsol()
+    pcall(function()
+        local starterGui = game:GetService("StarterGui")
+        starterGui:SetCore("DevConsoleVisible", true)
+    end)
+end
+
+-- Привязываем клик мыши / тап
+button.MouseButton1Click:Connect(runDevConsol)
+
+-- Привязываем клавишу F9
+userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.F9 then
+        runDevConsol()
+        
+        -- Визуальный отклик (анимация нажатия)
+        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        task.wait(0.1)
+        button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    end
+end)
