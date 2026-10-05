@@ -501,7 +501,7 @@ local F9BtnCorner = Instance.new("UICorner")
 F9BtnCorner.CornerRadius = UDim.new(0, 12)
 F9BtnCorner.Parent = F9Button
 
-F9Button.MouseButton1Click:Connect() do
+F9Button.MouseButton1Click:Connect(function()
     local CoreGui = game:GetService("CoreGui")
     local devConsole = CoreGui:FindFirstChild("DevConsoleMaster")
     if devConsole then
@@ -511,7 +511,7 @@ F9Button.MouseButton1Click:Connect() do
         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F9, false, game)
         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F9, false, game)
     end
-end) -- исправленный синтаксис клика
+end)
 
 Tabs.Settings:AddToggle("ShowF9BtnToggle", {
     Title = "Показывать плавающую кнопку F9",
