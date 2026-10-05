@@ -1,5 +1,5 @@
 -- ====================================================================
--- CUSTOM ERROR HUB (FLUENT UI - STABLE & CLEAN)
+-- CUSTOM ERROR HUB (FLUENT UI - ULTIMATE FIX)
 -- ====================================================================
 
 local success, Fluent = pcall(function()
@@ -7,7 +7,14 @@ local success, Fluent = pcall(function()
 end)
 
 if not success or not Fluent then
-    warn("Не удалось загрузить Fluent UI!")
+    success, Fluent = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/main.lua"))()
+    end)
+end
+
+if not success or not Fluent then
+    warn("КРИТИЧЕСКАЯ ОШИБКА: Не удалось загрузить Fluent UI ни по одной ссылке!")
+    error("Fluent UI Load Failed", 0)
     return
 end
 
@@ -48,7 +55,7 @@ local isRainbowTimerActive = false
 
 local function removeAllTimers()
     for _, gui in ipairs(game.CoreGui:GetChildren()) do
-        if gui.Name == "CustomRedTimer" then
+        if gui.Name == "CustomRedTimer" or gui.Name == "CustomV2MessageGui" then
             gui:Destroy()
         end
     end
@@ -69,6 +76,7 @@ local Tabs = {
     Chat = Window:AddTab({ Title = "Чат", Icon = "message-square" }),
     Console = Window:AddTab({ Title = "Консоль", Icon = "terminal" }),
     Notification = Window:AddTab({ Title = "Уведомление", Icon = "bell" }),
+    NotificationV2 = Window:AddTab({ Title = "Уведомление v2", Icon = "star" }),
     Settings = Window:AddTab({ Title = "Настройки", Icon = "settings" })
 }
 
@@ -103,46 +111,12 @@ Tabs.Chat:AddButton({
     Title = "Отправить сообщение в чат",
     Callback = function()
         local TextChatService = game:GetService("TextChatService")
-        local StarterGui = game:GetService("StarterGui")
         local hex = string.format("#%02X%02X%02X", SelectedChatColor.R * 255, SelectedChatColor.G * 255, SelectedChatColor.B * 255)
 
         if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
             local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
             if channel then
                 channel:DisplaySystemMessage("<font color='" .. hex .. "'><b>[" .. ChatPlayerName .. "]</b>:</font> " .. ChatMessageText)
-            end
-        else
-            StarterGui:SetCore("ChatMakeSystemMessage", {
-                Text = "[" .. ChatPlayerName .. "]: " .. ChatMessageText,
-                Color = SelectedChatColor,
-                Font = Enum.Font.SourceSansBold,
-                TextSize = 18
-            })
-        end
-    end
-})
-
-Tabs.Chat:AddButton({
-    Title = "Очистить чат",
-    Callback = function()
-        local TextChatService = game:GetService("TextChatService")
-        local StarterGui = game:GetService("StarterGui")
-
-        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
-            local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
-            if channel then
-                for i = 1, 15 do
-                    channel:DisplaySystemMessage(" ")
-                end
-            end
-        else
-            for i = 1, 15 do
-                StarterGui:SetCore("ChatMakeSystemMessage", {
-                    Text = " ",
-                    Color = Color3.fromRGB(0,0,0),
-                    Font = Enum.Font.SourceSans,
-                    TextSize = 1
-                })
             end
         end
     end
@@ -152,6 +126,16 @@ Tabs.Chat:AddButton({
 -- 2. ВКЛАДКА: КОНСОЛЬ
 --------------------------------------------------------------------
 local ConsoleText = "[Kupa Scripts]: Тестовый скрипт работает отлично!"
+local ConsoleLogType = "Сообщение (print)"
+
+Tabs.Console:AddDropdown("ConsoleTypeDropdown", {
+    Title = "Тип вывода в консоль",
+    Values = {"Сообщение (print)", "Предупреждение (warn)", "Ошибка (error)"},
+    Default = "Сообщение (print)",
+    Callback = function(Value)
+        ConsoleLogType = Value
+    end
+})
 
 Tabs.Console:AddInput("ConsoleTextInput", {
     Title = "Текст сообщения в консоль",
@@ -162,7 +146,17 @@ Tabs.Console:AddInput("ConsoleTextInput", {
 
 Tabs.Console:AddButton({
     Title = "Вывести в консоль (F9)",
-    Callback = function() print(ConsoleText) end
+    Callback = function()
+        if ConsoleLogType == "Предупреждение (warn)" then
+            warn(ConsoleText)
+        elseif ConsoleLogType == "Ошибка (error)" then
+            task.spawn(function()
+                error(ConsoleText, 0)
+            end)
+        else
+            print(ConsoleText)
+        end
+    end
 })
 
 --------------------------------------------------------------------
@@ -212,7 +206,7 @@ Tabs.Notification:AddInput("ButtonTitleInput", {
 
 Tabs.Notification:AddDropdown("ActionDropdown", {
     Title = "Действие при нажатии кнопки",
-    Values = {"Кик", "Запустить скрипт", "Таймер"},
+    Values = {"Нету", "Кик", "Запустить скрипт", "Таймер"},
     Default = "Запустить скрипт",
     Callback = function(Value) SelectedAction = Value end
 })
@@ -290,7 +284,9 @@ Tabs.Notification:AddInput("AfterTimerScriptInput", {
 })
 
 local function executeAction(actionType, kickText, scriptText, timerStr, onTimerFinish)
-    if actionType == "Кик" then
+    if actionType == "Нету" then
+        -- Ничего не делать
+    elseif actionType == "Кик" then
         game.Players.LocalPlayer:Kick(kickText)
     elseif actionType == "Запустить скрипт" then
         if scriptText:find("http") then
@@ -422,6 +418,92 @@ task.spawn(function()
 end)
 
 --------------------------------------------------------------------
+-- 3.5. ВКЛАДКА: УВЕДОМЛЕНИЕ V2
+--------------------------------------------------------------------
+local V2MessageText = "Привет из Уведомление v2!"
+local V2DurationSec = 5
+local V2Color = Color3.fromRGB(0, 255, 170)
+local V2IsRainbow = false
+
+Tabs.NotificationV2:AddInput("V2MessageInput", {
+    Title = "Текст сообщения v2",
+    Default = V2MessageText,
+    Placeholder = "Введи текст...",
+    Callback = function(Value) V2MessageText = Value end
+})
+
+Tabs.NotificationV2:AddInput("V2DurationInput", {
+    Title = "Время показа (сек)",
+    Default = "5",
+    Callback = function(Value) V2DurationSec = tonumber(Value) or 5 end
+})
+
+Tabs.NotificationV2:AddColorpicker("V2ColorPicker", {
+    Title = "Цвет сообщения v2",
+    Default = Color3.fromRGB(0, 255, 170),
+    Callback = function(Value) V2Color = Value end
+})
+
+Tabs.NotificationV2:AddToggle("V2RainbowToggle", {
+    Title = "Радужный градиент сообщения v2",
+    Default = false,
+    Callback = function(Value) V2IsRainbow = Value end
+})
+
+Tabs.NotificationV2:AddButton({
+    Title = "Показать сообщение v2",
+    Callback = function()
+        local v2Gui = Instance.new("ScreenGui")
+        v2Gui.Name = "CustomV2MessageGui"
+        v2Gui.Parent = game.CoreGui
+
+        local v2Lbl = Instance.new("TextLabel")
+        v2Lbl.Size = UDim2.fromOffset(500, 50)
+        v2Lbl.Position = UDim2.new(0.5, -250, 0.1, 0)
+        v2Lbl.BackgroundTransparency = 1
+        v2Lbl.TextColor3 = V2Color
+        v2Lbl.TextTransparency = 0
+        v2Lbl.TextSize = 26
+        v2Lbl.Font = Enum.Font.SourceSansBold
+        v2Lbl.Text = V2MessageText
+        v2Lbl.Parent = v2Gui
+
+        local runService = game:GetService("RunService")
+        local rainbowConn = nil
+
+        if V2IsRainbow then
+            local hue = 0
+            rainbowConn = runService.RenderStepped:Connect(function()
+                if not v2Lbl or not v2Lbl.Parent then
+                    if rainbowConn then rainbowConn:Disconnect() end
+                    return
+                end
+                hue = (tick() * 0.2) % 1
+                v2Lbl.TextColor3 = Color3.fromHSV(hue, 1, 1)
+            end)
+        end
+
+        task.spawn(function()
+            task.wait(math.max(0.1, V2DurationSec - 1))
+            
+            local fadeSteps = 30
+            local waitPerStep = 1 / fadeSteps
+            for i = 1, fadeSteps do
+                if not v2Lbl or not v2Lbl.Parent then break end
+                local alpha = i / fadeSteps
+                v2Lbl.TextTransparency = alpha
+                task.wait(waitPerStep)
+            end
+
+            if rainbowConn then rainbowConn:Disconnect() end
+            if v2Gui and v2Gui.Parent then
+                v2Gui:Destroy()
+            end
+        end)
+    end
+})
+
+--------------------------------------------------------------------
 -- 4. ВКЛАДКА: НАСТРОЙКИ
 --------------------------------------------------------------------
 Tabs.Settings:AddParagraph({
@@ -429,7 +511,7 @@ Tabs.Settings:AddParagraph({
     Content = "Управление плавающими кнопками на экране."
 })
 
--- ПЛАВАЮЩАЯ КНОПКА ОТКРЫТИЯ МЕНЮ
+-- ПЛАВАЮЩАЯ КНОПКА ОТКРЫТИЯ МЕНЮ ( UI )
 local OpenGui = Instance.new("ScreenGui")
 OpenGui.Name = "FluentToggleGui"
 OpenGui.Parent = game.CoreGui
@@ -451,7 +533,7 @@ ToggleBtnCorner.CornerRadius = UDim.new(0, 12)
 ToggleBtnCorner.Parent = ToggleButton
 
 ToggleButton.MouseButton1Click:Connect(function()
-    Fluent:Toggle()
+    Window:Minimize()
 end)
 
 Tabs.Settings:AddInput("ToggleBtnTextInput", {
@@ -507,43 +589,11 @@ F9BtnCorner.CornerRadius = UDim.new(0, 12)
 F9BtnCorner.Parent = F9Button
 
 F9Button.MouseButton1Click:Connect(function()
-    local CoreGui = game:GetService("CoreGui")
-    local devConsole = CoreGui:FindFirstChild("DevConsoleMaster")
-    if devConsole then
-        devConsole.Enabled = not devConsole.Enabled
-    else
-        game:GetService("StarterGui"):SetCore("DevConsoleVisible", not game:GetService("StarterGui"):GetCore("DevConsoleVisible"))
-    end
-end)
-
-Tabs.Settings:AddToggle("ShowF9BtnToggle", {
-    Title = "Показывать плавающую кнопку F9",
-    Default = false,
-    Callback = function(Value)
-        F9Gui.Enabled = Value
-    end
-})
-
-Tabs.Settings:AddInput("F9BtnTextInput", {
-    Title = "Текст на кнопке F9",
-    Default = "F9",
-    Placeholder = "Введи текст...",
-    Callback = function(Value)
-        F9Button.Text = Value ~= "" and Value or "F9"
-    end
-})
-
-Tabs.Settings:AddDropdown("F9BtnShapeDropdown", {
-    Title = "Форма кнопки F9",
-    Values = {"Квадрат (с углами)", "Круглая"},
-    Default = "Квадрат (с углами)",
-    Callback = function(Value)
-        if Value == "Круглая" then
-            F9BtnCorner.CornerRadius = UDim.new(1, 0)
-        else
-            F9BtnCorner.CornerRadius = UDim.new(0, 12)
-        end
-    end
-})
-
-Window:SelectTab(1)
+    local StarterGui = game:GetService("StarterGui")
+    local successState, currentState = pcall(function()
+        return StarterGui:GetCore("DevConsoleVisible")
+    end)
+    
+    if successState then
+        pcall(function()
+            StarterGui:SetCore("DevConsoleVisible", not cur
