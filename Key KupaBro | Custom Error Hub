@@ -32,13 +32,11 @@ local function formatRemainingTime(totalSec)
     return table.concat(parts, " ")
 end
 
--- Переменные для кастомизации таймера
 local activeTimersCount = 0
 local currentTimerTextDisplay = "Нет активных таймеров"
 local timerColor = Color3.fromRGB(255, 0, 0)
 local isRainbowTimerActive = false
 
--- Жесткий сброс всех таймеров и счетчиков
 local function removeAllTimers()
     for _, gui in ipairs(game.CoreGui:GetChildren()) do
         if gui.Name == "CustomRedTimer" then
@@ -113,6 +111,32 @@ Tabs.Chat:AddButton({
                 Font = Enum.Font.SourceSansBold,
                 TextSize = 18
             })
+        end
+    end
+})
+
+Tabs.Chat:AddButton({
+    Title = "Очистить чат",
+    Callback = function()
+        local TextChatService = game:GetService("TextChatService")
+        local StarterGui = game:GetService("StarterGui")
+
+        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+            if channel then
+                for i = 1, 15 do
+                    channel:DisplaySystemMessage(" ")
+                end
+            end
+        else
+            for i = 1, 15 do
+                StarterGui:SetCore("ChatMakeSystemMessage", {
+                    Text = " ",
+                    Color = Color3.fromRGB(0,0,0),
+                    Font = Enum.Font.SourceSans,
+                    TextSize = 1
+                })
+            end
         end
     end
 })
@@ -204,7 +228,6 @@ Tabs.Notification:AddInput("TimerFormatInput", {
     Callback = function(Value) TimerFormatStr = Value end
 })
 
--- НАСТРОЙКИ ЦВЕТА И РАДУГИ ТАЙМЕРА
 Tabs.Notification:AddColorpicker("TimerColorPicker", {
     Title = "Цвет текста таймера",
     Default = Color3.fromRGB(255, 0, 0),
@@ -307,7 +330,6 @@ local function executeAction(actionType, kickText, scriptText, timerStr, onTimer
             end
 
             for i = totalSeconds - 1, 0, -1 do
-                -- Если таймеры принудительно удалили через кнопку, прерываем цикл
                 if activeTimersCount <= 0 then break end
                 
                 currentTimerTextDisplay = formatRemainingTime(i + 1)
@@ -378,9 +400,6 @@ Tabs.Notification:AddButton({
     end
 })
 
---------------------------------------------------------------------
--- ТЕКСТ С АНАЛИЗОМ ТАЙМЕРОВ В КОНЦЕ ВКЛАДКИ УВЕДОМЛЕНИЕ
---------------------------------------------------------------------
 local StatusParagraph = Tabs.Notification:AddParagraph({
     Title = "Статус таймеров",
     Content = "Активных таймеров: 0\nТекущее время: Нет активных таймеров"
@@ -399,10 +418,11 @@ end)
 -- 4. ВКЛАДКА: НАСТРОЙКИ
 --------------------------------------------------------------------
 Tabs.Settings:AddParagraph({
-    Title = "Настройки плавающей кнопки открытия",
-    Content = "Управление кнопкой на экране для сворачивания/разворачивания."
+    Title = "Настройки интерфейса",
+    Content = "Управление плавающими кнопками на экране."
 })
 
+-- ПЛАВАЮЩАЯ КНОПКА ОТКРЫТИЯ МЕНЮ
 local OpenGui = Instance.new("ScreenGui")
 OpenGui.Name = "FluentToggleGui"
 OpenGui.Parent = game.CoreGui
@@ -430,7 +450,7 @@ ToggleButton.MouseButton1Click:Connect(function()
 end)
 
 Tabs.Settings:AddInput("ToggleBtnTextInput", {
-    Title = "Текст на кнопке открытия",
+    Title = "Текст на кнопке меню",
     Default = "UI",
     Placeholder = "Введи текст...",
     Callback = function(Value)
@@ -438,11 +458,88 @@ Tabs.Settings:AddInput("ToggleBtnTextInput", {
     end
 })
 
+Tabs.Settings:AddDropdown("ToggleBtnShapeDropdown", {
+    Title = "Форма кнопки меню",
+    Values = {"Квадрат (с углами)", "Круглая"},
+    Default = "Квадрат (с углами)",
+    Callback = function(Value)
+        if Value == "Круглая" then
+            ToggleBtnCorner.CornerRadius = UDim.new(1, 0)
+        else
+            ToggleBtnCorner.CornerRadius = UDim.new(0, 12)
+        end
+    end
+})
+
 Tabs.Settings:AddToggle("ShowToggleBtnToggle", {
-    Title = "Показывать плавающую кнопку на экране",
+    Title = "Показывать кнопку меню",
     Default = true,
     Callback = function(Value)
         OpenGui.Enabled = Value
+    end
+})
+
+-- ПЛАВАЮЩАЯ КНОПКА F9 (ДЛЯ ТЕЛЕФОНОВ)
+local F9Gui = Instance.new("ScreenGui")
+F9Gui.Name = "FluentF9Gui"
+F9Gui.Enabled = false
+F9Gui.Parent = game.CoreGui
+
+local F9Button = Instance.new("TextButton")
+F9Button.Size = UDim2.fromOffset(50, 50)
+F9Button.Position = UDim2.new(0, 75, 0.5, -25)
+F9Button.BackgroundColor3 = Color3.fromRGB(35, 30, 30)
+F9Button.Text = "F9"
+F9Button.TextColor3 = Color3.fromRGB(255, 170, 0)
+F9Button.TextSize = 18
+F9Button.Font = Enum.Font.SourceSansBold
+F9Button.Active = true
+F9Button.Draggable = true
+F9Button.Parent = F9Gui
+
+local F9BtnCorner = Instance.new("UICorner")
+F9BtnCorner.CornerRadius = UDim.new(0, 12)
+F9BtnCorner.Parent = F9Button
+
+F9Button.MouseButton1Click:Connect() do
+    local CoreGui = game:GetService("CoreGui")
+    local devConsole = CoreGui:FindFirstChild("DevConsoleMaster")
+    if devConsole then
+        devConsole.Enabled = not devConsole.Enabled
+    else
+        local VirtualInputManager = game:GetService("VirtualInputManager")
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F9, false, game)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F9, false, game)
+    end
+end) -- исправленный синтаксис клика
+
+Tabs.Settings:AddToggle("ShowF9BtnToggle", {
+    Title = "Показывать плавающую кнопку F9",
+    Default = false,
+    Callback = function(Value)
+        F9Gui.Enabled = Value
+    end
+})
+
+Tabs.Settings:AddInput("F9BtnTextInput", {
+    Title = "Текст на кнопке F9",
+    Default = "F9",
+    Placeholder = "Введи текст...",
+    Callback = function(Value)
+        F9Button.Text = Value ~= "" and Value or "F9"
+    end
+})
+
+Tabs.Settings:AddDropdown("F9BtnShapeDropdown", {
+    Title = "Форма кнопки F9",
+    Values = {"Квадрат (с углами)", "Круглая"},
+    Default = "Квадрат (с углами)",
+    Callback = function(Value)
+        if Value == "Круглая" then
+            F9BtnCorner.CornerRadius = UDim.new(1, 0)
+        else
+            F9BtnCorner.CornerRadius = UDim.new(0, 12)
+        end
     end
 })
 
