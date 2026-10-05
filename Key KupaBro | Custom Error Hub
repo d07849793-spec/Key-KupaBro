@@ -2,6 +2,7 @@
 -- CUSTOM ERROR HUB (FLUENT UI)
 -- ====================================================================
 
+-- Обновленный парсер времени под формат: ???s ???m ???d ???h
 local function parseTimeString(str)
     local totalSeconds = 0
     if not str then return 0 end
@@ -15,6 +16,15 @@ local function parseTimeString(str)
         end
     end
     return totalSeconds
+end
+
+-- Функция мгновенного удаления всех активных таймеров с экрана
+local function removeAllTimers()
+    for _, gui in ipairs(game.CoreGui:GetChildren()) do
+        if gui.Name == "CustomRedTimer" then
+            gui:Destroy()
+        end
+    end
 end
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -113,9 +123,10 @@ local ButtonTitleText = "Запустить"
 local SelectedAction = "Запустить скрипт"
 local KickReasonText = "Вас кикнули"
 local ScriptUrlText = "print('Executed!')"
-local TimerFormatStr = "10s"
+local TimerFormatStr = "10s 2m"
 
 local EnableAfterTimer = false
+local HideTimerUI = false -- Скрыть таймер визуально
 local AfterTimerAction = "Кик"
 local AfterTimerKickReason = "Вас кикнули после таймера"
 local AfterTimerScriptUrl = "print('After Timer Executed!')"
@@ -166,9 +177,24 @@ Tabs.Notification:AddInput("ScriptUrlInput", {
 })
 
 Tabs.Notification:AddInput("TimerFormatInput", {
-    Title = "Таймер (например: 10s)",
+    Title = "Таймер (например: 20s 2m 1h)",
     Default = "10s",
     Callback = function(Value) TimerFormatStr = Value end
+})
+
+-- ПЕРЕКЛЮЧАТЕЛЬ: СКРЫТЬ ТАЙМЕР
+Tabs.Notification:AddToggle("HideTimerToggle", {
+    Title = "Скрыть таймер (не показывать визуально)",
+    Default = false,
+    Callback = function(Value) HideTimerUI = Value end
+})
+
+-- КНОПКА: УДАЛИТЬ ВСЕ ТАЙМЕРЫ
+Tabs.Notification:AddButton({
+    Title = "Удалить все таймеры",
+    Callback = function()
+        removeAllTimers()
+    end
 })
 
 -- НАСТРОЙКИ ДЕЙСТВИЯ ПОСЛЕ ТАЙМЕРА
@@ -209,26 +235,36 @@ local function executeAction(actionType, kickText, scriptText, timerStr, onTimer
     elseif actionType == "Таймер" then
         local totalSeconds = parseTimeString(timerStr)
         task.spawn(function()
-            local timerGui = Instance.new("ScreenGui")
-            timerGui.Name = "CustomRedTimer"
-            timerGui.Parent = game.CoreGui
+            local timerGui = nil
+            local timerLbl = nil
 
-            local timerLbl = Instance.new("TextLabel")
-            timerLbl.Size = UDim2.fromOffset(200, 50)
-            timerLbl.Position = UDim2.new(0.5, -100, 0.1, 0)
-            timerLbl.BackgroundTransparency = 1
-            timerLbl.TextColor3 = Color3.fromRGB(255, 0, 0)
-            timerLbl.TextSize = 28
-            timerLbl.Font = Enum.Font.SourceSansBold
-            timerLbl.Text = totalSeconds .. " s"
-            timerLbl.Parent = timerGui
+            -- Создаем визуальный таймер только если переключатель «Скрыть таймер» выключен
+            if not HideTimerUI then
+                timerGui = Instance.new("ScreenGui")
+                timerGui.Name = "CustomRedTimer"
+                timerGui.Parent = game.CoreGui
+
+                timerLbl = Instance.new("TextLabel")
+                timerLbl.Size = UDim2.fromOffset(200, 50)
+                timerLbl.Position = UDim2.new(0.5, -100, 0.1, 0)
+                timerLbl.BackgroundTransparency = 1
+                timerLbl.TextColor3 = Color3.fromRGB(255, 0, 0)
+                timerLbl.TextSize = 28
+                timerLbl.Font = Enum.Font.SourceSansBold
+                timerLbl.Text = totalSeconds .. " s"
+                timerLbl.Parent = timerGui
+            end
 
             for i = totalSeconds, 1, -1 do
-                timerLbl.Text = i .. " s"
+                if timerLbl and timerLbl.Parent then
+                    timerLbl.Text = i .. " s"
+                end
                 task.wait(1)
             end
             
-            timerGui:Destroy()
+            if timerGui and timerGui.Parent then
+                timerGui:Destroy()
+            end
             if onTimerFinish then onTimerFinish() end
         end)
         return
